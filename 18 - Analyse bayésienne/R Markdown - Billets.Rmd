@@ -1,0 +1,127 @@
+---
+title: "Tutoriel sur l'analyse des données bayésiennes"
+output:
+  html_document:
+    df_print: paged
+---
+(basé sur le tutoriel UseR ! 2015 de R. Baath)
+# Modèle 1 — Modèle simple
+```{r}
+N.draw = 500000 # nombre de réplications
+x = 500 # nombre de billets marqués dans la saisie initiale
+y = 300 # nombre de billets échantillonnés lors de la deuxième saisie
+w = 127 # nombre de billets marqués dans l'échantillon
+upper.limit = 1500 # nombre maximum (théorique) de billets
+bin.width = 50 # pour le graphique de la distribution a posteriori
+
+# Définir (et tirer de) la distribution a priori
+N.bills = sample (x:1500, N.draw, replace=TRUE) # nombre de billets marqués dans chaque réplication
+barplot(table(cut(N.bills, seq(x, upper.limit, bin.width)))/ length(N.bills), col = "gray")
+
+# Définir le modèle génératif
+pick.bills <- function(N.bills) {
+  bills <- rep(0:1, c(N.bills - x, x)) # 0 pour non marqué, 1 pour marqué (dans la saisie initiale)
+  sum(sample(bills, y)) # échantillonnage de y billets lors de la deuxième saisie       
+}
+
+# Simuler les données
+N.marked <- rep(NA, N.draw) 
+  for(i in 1:N.draw) {
+    N.marked[i] <- pick.bills(N.bills[i])
+  }
+
+# Filtrage des valeurs des paramètres N.marked qui ne sont pas égales à w
+post.bills <- N.bills[N.marked == w]
+
+# Tracer la distribution a posteriori
+length(post.bills)
+barplot(table(cut(post.bills, seq(x,upper.limit,bin.width))) / length(post.bills), col = "blue")
+
+# Statistiques
+min(post.bills)
+mean(post.bills)
+median(post.bills)
+max(post.bills)
+```
+# Modèle 2 — Modèle de billets fragiles
+```{r}
+N.draw = 500000 # nombre de réplications
+x = 500 # nombre de billets marqués dans la saisie initiale
+y = 300 # nombre de billets échantillonnés lors de la deuxième saisie
+w = 127 # nombre de billets marqués dans l'échantillon
+u = 0.9 # probabilité que les billets marqués soient mis à la retraite
+upper.limit = 1500 # nombre maximum (théorique) de billets
+bin.width = 50 # pour le graphique de la distribution a posteriori
+
+# Définir (et tirer de) la distribution a priori
+N.bills = sample (x:1500, N.draw, replace=TRUE) # nombre de billets marqués dans chaque réplication
+barplot(table(cut(N.bills, seq(x, upper.limit, bin.width)))/ length(N.bills), col = "gray")
+
+# Définir le modèle génératif
+pick.bills <- function(N.bills) {
+  bills <- rep(0:1, c(N.bills - x, x)) # 0 pour non marqué, 1 pour marqué (dans la saisie initiale)
+   prob.pick <- ifelse(bills == 0, 1.0, u)
+  sum(sample(bills, y, prob = prob.pick)) # échantillonnage de y billets lors de la deuxième saisie       
+}
+
+# Simuler les données
+N.marked <- rep(NA, N.draw) 
+  for(i in 1:N.draw) {
+    N.marked[i] <- pick.bills(N.bills[i])
+  }
+
+# Filtrage des valeurs des paramètres N.marked qui ne sont pas égales à w
+post.bills <- N.bills[N.marked == w]
+
+# Tracer la distribution a posteriori
+length(post.bills)
+barplot(table(cut(post.bills, seq(x,upper.limit,bin.width))) / length(post.bills), col = "blue")
+
+# Statistiques
+min(post.bills)
+mean(post.bills)
+median(post.bills)
+max(post.bills)
+```
+
+# Model 3 -- Opinion d'une experte
+```{r}
+N.draw = 500000 # nombre de réplications
+x = 500 # nombre de billets marqués dans la saisie initiale
+y = 300 # nombre de billets échantillonnés lors de la deuxième saisie
+w = 127 # nombre de billets marqués dans l'échantillon
+u = 0.9 # probabilité que les billets marqués soient mis à la retraite
+banker.mean = 1000 # opinion de l'experte
+upper.limit = 1500 # nombre maximum (théorique) de billets
+bin.width = 50 # pour le graphique de la distribution a posteriori
+
+# Définir (et tirer de) la distribution a priori
+N.bills = rnbinom(N.draw, mu = banker.mean - x, size = w) + x # nombre de billets marqués dans chaque réplication, selon l'expérience de l'experte
+barplot(table(cut(N.bills, seq(x, upper.limit, bin.width)))/ length(N.bills), col = "gray")
+
+# Définir le modèle génératif
+pick.bills <- function(N.bills) {
+  bills <- rep(0:1, c(N.bills - x, x)) # 0 pour non marqué, 1 pour marqué (dans la saisie initiale)
+   prob.pick <- ifelse(bills == 0, 1.0, u)
+  sum(sample(bills, y, prob = prob.pick)) # échantillonnage de y billets lors de la deuxième saisie       
+}
+
+# Simuler les données
+N.marked <- rep(NA, N.draw) 
+  for(i in 1:N.draw) {
+    N.marked[i] <- pick.bills(N.bills[i])
+  }
+
+# Filtrage des valeurs des paramètres N.marked qui ne sont pas égales à w
+post.bills <- N.bills[N.marked == w]
+
+# Tracer la distribution a posteriori
+length(post.bills)
+barplot(table(cut(post.bills, seq(x,upper.limit,bin.width))) / length(post.bills), col = "blue")
+
+# Statistiques
+min(post.bills)
+mean(post.bills)
+median(post.bills)
+max(post.bills)
+```

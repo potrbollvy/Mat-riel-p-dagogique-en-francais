@@ -1,0 +1,255 @@
+---
+title: "Saisie de données avec R et XPath"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+(Ce calepin calque l’exemple présenté dans _Automated Data Collection with R_, chapitre 4,  de Munzert, Rubba, Meissner, Nyhuis).
+
+## APERÇU <a name="top"></a>
+1. [Préambule](#preamble)
+2. [Requêtes structurelles de base](#bsq)
+3. [Relations entre les nodules (“nodes”)](#noderelations)
+4. [Prédicats de XPath](#xpreds)
+4. [Extraction des éléments d'un nodule](#extract)
+4. [Trucs divers](#misc)
+
+
+## PRÉAMBULE <a name="preamble"></a>
+Lancez le paquet `XML`. 
+
+
+```{r}
+library(XML)
+```
+
+Interprétation et affichage du document HTML `fortunes.html`, qui se trouve dans le dossier `Data`.
+
+
+```{r}
+parsed_doc <- htmlParse(file = "Data/fortunes.html")
+print(parsed_doc)
+```
+
+ 
+[Retour en haut de page](#top)
+
+## REQUÊTES STRUCTURELLES DE BASE<a name="bsq"></a>
+Les requêtes `XPath` sont appelées en utilisant `xpathSApply()`, qui nécessite un document interprété `doc` et un parcours de requête `path`.
+
+Les **parcours absolus** sont représentés par une simple barre oblique [`/`] ; les **parcours relatifs** par une double barre oblique [`//`].
+
+Les **parcours génériques** sont représentées par un astérisque [`*`] ; la **montée d'un niveau** dans l'arbre d'interprétation est représentée par un double point [`..`].
+
+La **disjonction** (OU) de deux parcours est représentée par l'opérateur “pipeline" [`|`].
+
+
+```{r}
+xpathSApply(doc = parsed_doc, path = "/html/body/div/p/i")
+```
+
+
+```{r}
+xpathSApply(parsed_doc, "//body//p/i")
+```
+
+
+```{r}
+xpathSApply(parsed_doc, "//p/i")
+```
+
+
+```{r}
+xpathSApply(parsed_doc, "/html/body/div/*/i")
+```
+
+
+```{r}
+xpathSApply(parsed_doc, "//title/..")
+```
+
+
+```{r}
+xpathSApply(parsed_doc, "//address | //title")
+```
+
+
+```{r}
+twoQueries <- c(address = "//address", title = "//title")
+xpathSApply(parsed_doc, twoQueries)
+```
+
+ 
+[Retour en haut de page](#top)
+
+## RELATIONS ENTRE LES NODULES ("NODES") <a name=noderelations></a>
+Le parcours d'une requête peut également exploiter la relation entre les nodules.
+
+La prochaine requête `XPath` cherche les balises `<a>` dans le document, et trouve leurs ancêtres `<div>` (il n'y en a qu'une de chaque sorte dans notre exemple, mais ça ne sera pas toujours le cas).
+
+
+```{r}
+xpathSApply(parsed_doc, "//a/ancestor::div")
+```
+
+La requête `XPath` suivante cherche les balises `<a>` dans le document, et produit toutes les balises `<i>` retrouvées dans les nodules ancêtres `<div>` respective (il n'y en a encore qu’une seule dans cet exemple).
+
+
+```{r}
+xpathSApply(parsed_doc, "//a/ancestor::div//i")
+```
+
+La requête `XPath` suivante cherche les balises `<p>` dans le document, et produit les balises `<h1>` de tous leurs nœuds sœurs qui les précèdent (il y en a deux dans cet exemple).
+
+
+```{r}
+xpathSApply(parsed_doc, "//p/preceding-sibling::h1")
+```
+
+Quel résultat pensez-vous obtenir avec cette requête?
+
+
+```{r}
+xpathSApply(parsed_doc, "//title/parent::*")
+```
+
+ 
+[Retour en haut de page](#top)
+
+## PRÉDICATS DE XPATH<a name="xpred"></a>
+Nous pouvons aussi effectuer des recherches en utilisant des prédicats numériques et de prédicats de position.
+
+Cette requête `XPath` trouve le premier nodule `<p>` dans chaque nodule `<div>`.
+
+
+```{r}
+xpathSApply(parsed_doc, "//div/p[position()=1]")
+```
+
+Cette requête `XPath` trouve le dernier nodule `<p>` dans chaque nodule `<div>`.
+
+
+```{r}
+xpathSApply(parsed_doc, "//div/p[last()]")
+```
+
+Cette requête `XPath` trouve l'avant-dernier nodule `<p>` dans chaque nodule `<div>`.
+
+
+```{r}
+xpathSApply(parsed_doc, "//div/p[last()-1]")
+```
+
+Cette requête `XPath` trouve les nodules `<div>` qui ont au moins un nodule  `<a>` parmi leurs enfants.
+
+
+```{r}
+xpathSApply(parsed_doc, "//div[count(.//a)>0]")
+```
+
+Cette requête `XPath` trouve les nodules `<div>` qui ont plus de 2 attributs.
+
+
+```{r}
+xpathSApply(parsed_doc, "//div[count(./@*)>2]")
+```
+
+Cette requête `XPath` trouve les nodules pour lesquels la composante texte a plus de 50 caractères. 
+
+
+```{r}
+xpathSApply(parsed_doc, "//*[string-length(text())>50]")
+```
+
+Cette requête `XPath` trouve tous les nodules `<div>` avec 2 attributs ou moins. 
+
+
+```{r}
+xpathSApply(parsed_doc, "//div[not(count(./@*)>2)]")
+```
+
+Pouvez-vous prévoir l'effet des requêtes suivantes? Ce qu'elles rapporteront? 
+
+
+```{r}
+xpathSApply(parsed_doc, "//div[@date='October/2011']")
+xpathSApply(parsed_doc, "//*[contains(text(), 'magic')]")
+xpathSApply(parsed_doc, "//div[starts-with(./@id, 'R')]")
+xpathSApply(parsed_doc, "//div[substring-after(./@date, '/')='2003']//i")
+```
+
+ 
+[Retour en haut de page](#top)
+
+## EXTRACTION DES ÉLÉMENTS D'UN NODULE<a name="extract"></a>
+À l’aide de l’option `fun`, une requête "XPath" peut également extraire des éléments spécifiques d’un nodule. 
+
+L'option `xmlValue` renvoie la valeur du nodule.
+
+
+```{r}
+xpathSApply(parsed_doc, "//title", fun = xmlValue)
+```
+
+L’option `xmlAttrs` renvoie les attributs du nodule.
+
+
+```{r}
+xpathSApply(parsed_doc, "//div", xmlAttrs)
+```
+
+L'option `xmlGetAttr` renvoie un attribut spécifique.
+
+
+```{r}
+xpathSApply(parsed_doc, "//div", xmlGetAttr, "lang")
+```
+
+ 
+[Retour en haut de page](#top)
+
+## TRUCS DIVERS <a name="misc"></a>
+
+Selon vous, qu’est-ce que les requêtes suivantes retournent? 
+
+
+```{r}
+#Convertir les lettres majuscules de la valeur d'un nodule
+lowerCaseFun <- function(x) {
+    x <- tolower(xmlValue(x))
+    return(x)
+    }
+
+xpathSApply(parsed_doc, "//div//i", fun = lowerCaseFun)
+```
+
+
+```{r}
+#Extraire une série de caractères se présentant comme une date de la valeur d'un nodule
+dateFun <- function(x) {
+    require(stringr)
+    date <- xmlGetAttr(node = x, name = "date")
+    year <- str_extract(date, "[0-9]{4}")
+    return(year)
+    }
+
+xpathSApply(parsed_doc, "//div", dateFun)
+```
+
+
+```{r}
+#Remplacer les valeurs NULL renvoyées par une requête sur l'attribut `id`
+idFun <- function(x) {
+    id <- xmlGetAttr(x, "id")
+    id <- ifelse(is.null(id), "not specified", id)
+    return(id)
+}
+
+xpathSApply(parsed_doc, "//div", idFun)
+```
