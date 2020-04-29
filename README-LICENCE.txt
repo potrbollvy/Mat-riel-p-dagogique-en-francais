@@ -1,13 +1,24 @@
-Le matériel se retrouvant dans dans ce répertoire a été financé en partie par l'entremise d'un octroi de l'Université d'Ottawa visant le développement de matériel pédagogique en français (2019-2020), et par le soutient du Laboratoire Action Données (Ottawa), de Sysabee (Ottawa), de DAVHILL (Ottawa), et de Idlewyd Analytics and Consulting Services (Wakefield). 
+INTELLIGENCE ARTIFICIELLE, SCIENCE DES DONNÉES, ET APPRENTISSAGE AUTOMATIQUE
 
+MATÉRIEL PÉDAGOGIQUE EN FRANÇAIS
 
-Collaborateurs: 
-    - Patrick Boily (uOttawa, IACS, DAL)
-    - Jennifer Schellinck (Sysabee, DAL)
-    - Ehssan Ghassim (IACS)
-    - Andrew Macfie (IACS)
-    - Maia Pelletier, Razieh Pourhasan, Youssouph Cissokhho, etc. 
+CONTRIBUTEURS:
+    - Patrick Boily (uOttawa, IACS)
+    - Jennifer Schellinck (Sysabee)
+    - Stephen Davies (DAVHILL)
+    - uOttawa: Youssouph Cissokho, Soufiane Fadel, Olivier Leduc, Richard Millson, Maia Pelletier, Razieh Pourhasan, Mohsen Rezapour Toughari, Bing Wang
+    - IACS: Ehssan Ghashim, Lani Haque, Andrew Macfie, Aditya Maheshwari
+    - Carleton University: Kevin Cheung, Shintaro Hagiwara
 
+RECONNAISSANCE DE FINANCEMENT
+Le matériel se retrouvant dans ce répertoire (et son équivalent de langue anglaise) a été financé en partie par 
+    - l'université d'Ottawa, par l'entremise d'un octroi visant le développement de matériel pédagogique en français (2019-2020);
+    - le consortium du Data Action Lab [Idlewyld Analytics and Consulting Services, Sysabee, et DAVHILL] (2016-2020);
+    - l'école de la fonction publique du Canada (2018-2019), et
+    - le centre d'analyse quantitative et d'appui décisionnel de la Carleton University (2016-2018).
+
+-----------------------------------------------
+LICENSE D'UTILISATION
 Ce matériel est rendu disponible sous une licence Creative Commons (CC BY-NC-SA 4.0: attribution - pas d’utilisation commerciale - partage dans les mêmes conditions - 4.0 international) 
 
 Vous êtes autorisé à :
