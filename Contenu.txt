@@ -1,0 +1,36 @@
+MATÉRIEL COMPLÉTÉ (29.04.2020)
+    - notes de lecture, présentation(s), calepin(s) et exemple(s), projet et données, vidéos (à venir)
+
+01 - Notions universelles sur l'analyse des données
+02 - Collecte des données
+05 - Fondements mathématiques et statistique
+06 - Exploration et visualization des données
+28 - Analyse bayésienne
+29 - Principes fondamentaux des systèmes de files d'attente
+
+MATÉRIEL EN PRÉPARATION
+
+03 - Traitement et préparation des données
+04 - Fondements de la programmation
+07 - Architecture des données et de l'information
+08 - Techniques de base d'analyse des données
+09 - Mesures et paramètres
+10 - Analyse prédictive
+11 - Apprentissage statistique
+12 - Règles d'association et découverte de motifs fréquents
+13 - Introduction à la classifaction et à l'apprentissage supervisé
+14 - Estimation des valeurs et régression
+15 - Introduction au regroupement et à l'apprentissage non-supervisé
+16 - Pleins feux sur la classification
+17 - Pleins feux sur le regroupement
+18 - Traitement de texte et traitement automatique du language
+19 - Détection des anomalies et des valeurs aberrantes
+20 - Réduction de la dimension et sélection des attributs
+21 - Apprentissage profond et intelligence artificielle
+22 - Apprentissage par renforcement
+23 - Analyse des résaux (sociaux)
+24 - Systèmes de recommandation
+25 - Fouille de flots de données
+26 - Données massives et extensibilité
+27 - Analyse de données non structurées
+30 - Chapitres choisis
