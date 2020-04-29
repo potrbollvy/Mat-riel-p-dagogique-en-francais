@@ -33,7 +33,7 @@ Interprétation et affichage du document HTML `fortunes.html`, qui se trouve dan
 
 
 ```{r}
-parsed_doc <- htmlParse(file = "Data/fortunes.html")
+parsed_doc <- htmlParse(file = "../Data/fortunes.html")
 print(parsed_doc)
 ```
 
