@@ -1,0 +1,1736 @@
+---
+title: "Exploration et visualisation des données avec R"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<a name=top></a>
+
+Dans ce calepin, nous commençons par montrer comment produire des graphiques simples en utilisant l'installation R de base. Nous introduisons ensuite des graphiques plus sophistiqués à l’aide des modules `tidyverse` et `ggplot2`. Certains des exemples sont adaptés de la documentation du module `dslabs` (R. Irizarry), ainsi que de diverses autres sources. 
+
+Ce calepin utilise les librairies suivantes (elles doivent être installés avant que le document ne soit tricoté ("knitted”)) : 
+
+```{r}
+# install.packages("car","devtools","dplyr","dslabs","forcats","forecast","gapminder","geomnet","ggalt","gganimate","ggcorrplot","ggdendro","ggExtra","ggfortify","ggnetwork","ggplot2","ggrepel","ggthemes","gridExtra","lubridate","network","plyr","quantmod","RColorBrewer","reshape2","scales","tidyverse","treemapify","triangle","zoo")
+``` 
+
+## APERÇU
+1. [Diagrammes de dispersion](#scatterplots) (1.1 [swiss](#scatterplot_swiss), 1.2 [iris](#scatterplot_iris))
+2. [Histogrammes et diagrammes à barres](#histbar) (2.1 [swiss](#histbar_swiss), 2.2 [iris](#histbar_iris))
+3. [Diagrammes à bulles](#bubbles) (3.1 [Données démographiques canadiennes 2011](#bubbles_can2011), 3.2 [RMR canadiennes, 2011](#cma))
+4. [Exemple: prolifération d'algues](#algae)
+5. [`ggplot2` et le "tidyverse"](#ggtv) (5.1 [Meurtres aux États-Unis](#murders), 5.2 [Gapminder](#gapminder), 5.3 [Élection présidentielle américaine de 2016 - sondages](#538), 5.4 [Maladies](#diseases), 5.5 [Données artificielles](#random), 5.6 [Chanteurs de la New York Choral Society](#singers), 5.7 [Salaires des professeurs d'université](#salaries), 5.8 [MPG](#mpg), 5.9 [Téléphones dans le monde](#phones))
+14. [Autres exemples et méthodes](#examples) (6.1 [Courbes de lissage](#0), 6.2 [Diagrammes de "jitter"](#00), 6.3 [Animations](#000), 6.4 [Distributions marginales](#1), 6.5 [Diagrammes à barres divergentes](#2), 6.6 [Diagrammes de superficie](#3), 6.7 [Diagrammes en entonnoir](#4), 6.8 [Cartes thermiques](#5), 6.9 [Diagrammes à barres ordonnées](#6), 6.10 [Corrélogrammes](#7), 6.11 ["Treemaps"](#8), 6.12 [Diagrammes de résaux](#9), 6.13 [diagrammes de coordonnées parallèles](#10), 6.14 [séries chronologiques et variantes](#11), 6.15 [Regroupements](#12), 6.16 [Diagrammes à haltères](#13), 6.17 [Diagrammes à pentes](#14), 6.18 [Dendrogrammes](#15), 6.19 [Diagrammes de densité](#16), 6.20 [Boîtes à moustaches](#17), 6.21 ["Dot plots"](#18), 6.22 [Diagrammes de gaufres](#19))
+
+
+## 1. Diagrammes de dispersion <a id='scatterplots'></a> 
+
+### 1.1 `swiss` <a name=scatterplot_swiss></a>
+Nous commençons avec l’ensemble de données `swiss`, disponible dans R.
+
+
+```{r}
+str(swiss) # structure de l'ensemble des données “swiss"
+pairs(swiss) # diagrammes de dispersion pour toutes les paires d'attributs
+```
+
+Concentrons-nous sur une paire spécifique : Fertility (fécondité) vs. Education (éducation).
+
+
+```{r}
+# diagramme brut
+plot(swiss$Fertility, swiss$Education)
+```
+
+Le diagramme peut être enrichi et rendu plus instructif:
+
+
+```{r}
+# ajouter un titre et des étiquettes d'axe
+plot(swiss$Fertility, swiss$Education, xlab="Fertility", ylab="Education", main="Education vs Fertility (by province), Switzerland, 1888", las=1)
+
+# ajouter la ligne de meilleure concordance (en rouge)
+abline(lm(swiss$Education~swiss$Fertility), col="red", lwd=2.5) 
+
+# ajouter la courbe de lissage “lowess" (en bleu)
+lines(lowess(swiss$Fertility,swiss$Education), col="blue", lwd=2.5) 
+
+# ajouter une légende
+legend(75,50, c("Best Fit","Lowess"), lty=c(1,1), lwd=c(2.5,2.5),col=c("red","blue")) 
+```
+
+Comparez ce graphique avec celui qui se trouve ci-dessous: 
+
+
+```{r}
+plot(swiss$Education, xlab="Province", ylab="Education", main="Education by Province, Switzerland, 1888", las=1)
+abline(lm(swiss$Education~row(swiss)[,1]), col="red", lwd=2.5) 
+lines(swiss$Education)
+lines(lowess(row(swiss)[,1],swiss$Education), col="blue", lwd=2.5) 
+legend(5,52, c("Best Fit","Lowess"), lty=c(1,1), lwd=c(2.5,2.5),col=c("red","blue")) 
+```
+
+Ce dernier graphique n’a pas de sens… pourquoi? 
+
+Ce qu'il faut retenir ici, c'est que le fait de pouvoir produire un graphique ne garantit pas qu'il sera utile ou significatif de quelque manière que ce soit.
+
+Voyons à quoi ressemblent les diagrammes de dispersion sans ornement avec `ggplot2`.
+
+
+```{r}
+## le même truc, avec ggplot2
+library(ggplot2)
+qplot(Fertility, Education, data=swiss)
+qplot(Fertility, Education, xlim=c(min(0,10*floor(min(swiss$Fertility)/10)),10*ceiling(max(swiss$Fertility)/10)), ylim=c(min(0,10*floor(min(swiss$Education)/10)),10*ceiling(max(swiss$Education)/10)), data=swiss)
+```
+
+
+### 1.2 `iris`<a name=scatterplot_iris></a>
+On fait à peu près la même chose pour l’ensemble de données `iris`.
+
+
+```{r}
+str(iris) # structure de l'ensemble de données
+summary(iris) # renseignements sur les distributions pour chaque attribut
+?iris # renseignements sur l'ensemble de données lui-même
+
+pairs(iris[1:4], main = "Anderson's Iris Data", pch = 21, lower.panel=NULL, labels=c("SL","SW","PL","PW"), font.labels=2, cex.labels=4.5) 
+```
+
+Nous pouvons comparer les variables de largeur et de longueur des sépales d'une manière similaire à ce que nous avons fait avec l’ensemble de données `swiss`.
+
+
+```{r}
+## Iris 1
+plot(iris$Sepal.Length, iris$Sepal.Width, xlab="Sepal Length", ylab="Sepal Width", main="Sepal Width vs Sepal Length, Anderson's Iris Dataset", las=1, bg=c("yellow","black","green")[unclass(iris$Species)])
+abline(lm(iris$Sepal.Width~iris$Sepal.Length), col="red", lwd=2.5) 
+lines(lowess(iris$Sepal.Length,iris$Sepal.Width), col="blue", lwd=2.5) 
+legend(7,4.35, c("Best Fit","Lowess"), lty=c(1,1), lwd=c(2.5,2.5),col=c("red","blue")) 
+```
+
+Il ne semble pas y avoir une relation très forte entre ces variables. Que peut-on dire de la longueur des sépales et de la longueur des pétales ? 
+
+
+```{r}
+## Iris 2
+plot(iris$Sepal.Length, iris$Petal.Length, xlab="Sepal Length", ylab="Petal Length", main="Sepal Width vs Petal Length, Anderson's Iris Dataset", las=1)
+abline(lm(iris$Petal.Length~iris$Sepal.Length), col="red", lwd=2.5) 
+lines(lowess(iris$Sepal.Length,iris$Petal.Length), col="blue", lwd=2.5) 
+legend(7,4.35, c("Best Fit","Lowess"), lty=c(1,1), lwd=c(2.5,2.5),col=c("red","blue")) 
+```
+
+Visuellement, la relation est frappante: la ligne semble avoir une pente de 1! Mais remarquez que les axes ne sont pas à la même échelle, et qu’ils ne se rendent pas jusqu'à l'origine. Le graphique suivant donne une meilleure représentation de la situation.
+
+
+```{r}
+## Iris 3
+plot(iris$Sepal.Length, iris$Petal.Length, xlab="Sepal Length", ylab="Petal Length", main="Sepal Width vs Petal Length, Anderson's Iris Dataset", xlim=c(0,8), ylim=c(0,8), las=1)
+abline(lm(iris$Petal.Length~iris$Sepal.Length), col="red", lwd=2.5) 
+lines(lowess(iris$Sepal.Length,iris$Petal.Length), col="blue", lwd=2.5) 
+legend(2,7, c("Best Fit","Lowess"), lty=c(1,1), lwd=c(2.5,2.5),col=c("red","blue")) 
+```
+
+Une relation est toujours présente, mais elle est **affine** (et non linéaire comme on aurait pu le deviner en consultant naïvement le graphique original). 
+
+
+On peut également utiliser la couleur pour mettre en évidence divers éléments.
+
+
+```{r}
+# chaque observation est colorée selon son espèce
+plot(iris$Sepal.Length, iris$Sepal.Width, pch=21, bg=c("red","green3","blue")[unclass(iris$Species)], main="Anderson's Iris Data -- Sepal Length vs. Sepal Width", xlim=)
+```
+
+Cela peut être fait sur tous les diagrammes de dispersion simultanément en utilisant `pairs`.
+
+
+```{r}
+# diagrammes de dispersion avec appartenance aux espèces
+pairs(iris[1:4], main = "Anderson's Iris Data", pch = 21, bg = c("red", "green3", "blue")[unclass(iris$Species)], lower.panel=NULL, labels=c("SL","SW","PL","PW"), font.labels=2, cex.labels=4.5)
+```
+
+
+La répétition de la matrice de dispersion peut également être utilisée pour afficher d'autres éléments de données: `GGally` permet de placer des **distributions** dans les entrées diagonales, et des **corrélations entre les paires de variables** et des **tracés de densité** dans les panneaux superflus (entre autres). Cependant, il faut éviter d'utiliser trop de couleurs ou trop de caractéristiques dans ces tracés. Ils peuvent facilement devenir trop difficiles à lire et ne plus fournir de renseignements utiles.
+
+
+[Retour en haut de page](#top)
+
+## 2. Histogrammes et diagrammes à barres <a name=histbar></a>
+Soyez attentifs aux effets de la taille des bacs.
+
+### 2.1 `swiss` <a name=histbar_swiss></a>
+Par exemple, à quoi ressemble la distribution de la variable `Education` dans l'ensemble de données `swiss` ? 
+
+
+```{r}
+## Histogrammes/Diagrammes à barres
+hist(swiss$Education)   # nombre de bacs par défaut
+hist(swiss$Education, breaks=10)   # avec 10 bacs
+hist(swiss$Education, breaks=20)   # avec 20 bacs
+```
+
+Le schéma de distribution est nettement différent avec 10 et avec 20 bacs. Attention: les tendances peuvent être masquées par un trop grand nombre de bacs si la taille de l'ensemble de données n'est pas suffisante.
+
+Nous pouvons rechercher les meilleurs ajustements pour diverses distributions paramétriques:
+
+
+```{r}
+#Swiss 1 - numéro de bacs par défaut
+hist(swiss$Education, freq=FALSE, xlab="Education",main="Education Distribution, by Province, Switzerland, 1888", col="firebrick1", ylim=c(0,0.15))
+curve(dgamma(x,shape=mean(swiss$Education)),add=TRUE, col="darkblue", lwd=4) # Adaptation à une distribution gamma
+curve(dexp(x,rate=1/mean(swiss$Education)),add=TRUE, col="black", lwd=4) # adaptation à une distribution exponentielle
+curve(dnorm(x,mean=mean(swiss$Education),sd=sd(swiss$Education)), add=TRUE, col="green3", lwd=4) # Adaptation à une distribution normale
+legend(40,0.05, c("Gamma","Exponential","Normal"), lty=c(1,1), lwd=c(4,4),col=c("darkblue","black", "green3")) 
+
+# Swiss 2 - 10 bacs
+hist(swiss$Education, breaks=10, freq=FALSE, xlab="Education",main="Education Distribution, by Province, Switzerland, 1888", col="firebrick1", ylim=c(0,0.15))
+curve(dgamma(x,shape=mean(swiss$Education)),add=TRUE, col="darkblue", lwd=4)
+curve(dexp(x,rate=1/mean(swiss$Education)),add=TRUE, col="black", lwd=4)
+curve(dnorm(x,mean=mean(swiss$Education),sd=sd(swiss$Education)), add=TRUE, col="green3", lwd=4)
+legend(40,0.05, c("Gamma","Exponential","Normal"), lty=c(1,1), lwd=c(4,4),col=c("darkblue","black", "green3")) 
+
+# Swiss 3 - 20 bacs
+hist(swiss$Education, breaks=20, freq=FALSE, xlab="Education",main="Education Distribution, by Province, Switzerland, 1888", col="firebrick1", ylim=c(0,0.15))
+curve(dgamma(x,shape=mean(swiss$Education)),add=TRUE, col="darkblue", lwd=4)
+curve(dexp(x,rate=1/mean(swiss$Education)),add=TRUE, col="black", lwd=4)
+curve(dnorm(x,mean=mean(swiss$Education),sd=sd(swiss$Education)), add=TRUE, col="green3", lwd=4)
+legend(40,0.05, c("Gamma","Exponential","Normal"), lty=c(1,1), lwd=c(4,4),col=c("darkblue","black", "green3")) 
+```
+
+La distribution exponentielle semble bien s’accorder avec les données, visuellement, lorsque l’on utilise un petit nombre de bacs. Avec un plus grand nombre de bacs, aucune des trois familles ne semble particulièrement bonne.
+
+
+### 2.2 `iris` <a name=histbar_iris></a>
+Pouvez-vous déterminer ce qui se passe avec ces visualisations de l'ensemble des données `iris`?
+
+
+```{r}
+hist(iris$Sepal.Length, freq=FALSE, xlab="Sepal.Length",main="Sepal.Length Distribution", col="firebrick1", ylim=c(0,0.15))
+# que se passe-t-il si vous remplacez freq=FALSE par freq=TRUE?
+```
+
+
+```{r}
+# Un autre attribut
+hist(iris$Sepal.Width, freq=FALSE, xlab="Sepal.Width",main="Sepal.Width Distribution", col="firebrick1", ylim=c(0,0.15))
+```
+
+Les histogrammes (représentations 1D) peuvent être combinés avec des diagrammes de dispersion (représentations 2D) pour fournir des renseignments **marginaux**. 
+
+
+```{r}
+# nous allons créer notre propre fonction (scatterhist, R-blogger)
+scatterhist = function(x, y, xlab="", ylab=""){
+  zones=matrix(c(2,0,1,3), ncol=2, byrow=TRUE)
+  layout(zones, widths=c(4/5,1/5), heights=c(1/5,4/5))
+  xhist = hist(x, plot=FALSE)
+  yhist = hist(y, plot=FALSE)
+  top = max(c(xhist$counts, yhist$counts))
+  par(mar=c(3,3,1,1))
+  plot(x,y)
+  par(mar=c(0,3,1,1))
+  barplot(xhist$counts, axes=FALSE, ylim=c(0, top), space=0)
+  par(mar=c(3,0,1,1))
+  barplot(yhist$counts, axes=FALSE, xlim=c(0, top), space=0, horiz=TRUE)
+  par(oma=c(3,3,0,0))
+  mtext(xlab, side=1, line=1, outer=TRUE, adj=0, 
+    at=.8 * (mean(x) - min(x))/(max(x)-min(x)))
+  mtext(ylab, side=2, line=1, outer=TRUE, adj=0, 
+    at=(.8 * (mean(y) - min(y))/(max(y) - min(y))))
+}
+
+ds = iris
+with(ds, scatterhist(iris$Sepal.Length, iris$Sepal.Width, xlab="Sepal.Length", ylab="Sepal.Width"))
+```
+
+
+[Retour en haut de page](#top)
+
+## 3. Diagrammes à bulles <a name=bubbles></a>
+Les diagrammes à bulles sont un moyen efficace d'afficher au moins 3 variables sur la même représentation en 2D. La position du centre des bulles correspond à deux variables : la taille, la couleur et la forme des bulles peuvent également être ajoutées pour représenter différents éléments des données.
+
+### 3.1 Ensemble de données démographiques canadiennes 2011 <a name=bubbles_can2011></a>
+Pour cet exemple, nous allons examiner les données démographiques concernant les régions métropolitaines de recensement (RMR) et les agglomérations de recensement (AR) du Canada (selon Statistique Canada).
+
+
+```{r}
+can.2011=read.csv("../Data/Canada2011.csv", head=TRUE) # importation des données
+head(can.2011) # consulter les 6 premières entrées
+str(can.2011) # examiner la structure des données
+summary(can.2011[,3:12], maxsum=13) # fournir des informations sur la distribution pour les caractéristiques 3 à 12, en tenant compte de 13 facteurs au maximum dans les distributions catégorielles 
+```
+
+Voyons à quoi ressemble l'ensemble de données dans le cadre d’un diagramme de dispersion pour 5 des variables, regroupées par régions. 
+
+
+```{r}
+pairs(can.2011[,c(7,9,10,11,12)])
+```
+
+Meh… ce n’est pas super. Il y a bien quelques bribes intéressantes ici et là, mais rien ne saute aux yeux au premier passage.
+
+Peut-on obtenir d'autres précisions en utilisant des diagrammes à bulles? Nous allons utiliser le "revenu médian" comme rayon pour les bulles, et nous nous concentrons sur les taux d'occupation et la population.  
+
+
+```{r}
+radius.med.income.2011<-sqrt(can.2011$med_total_income_2011/pi)
+symbols(can.2011$log_pop_2011, can.2011$occ_rate_2011, circles=radius.med.income.2011, inches=0.45, fg="white", bg="red", xlab="Population (log)", ylab="Occupancy Rate")
+title("Total Median Income, by CMA and CA (2011)")
+```
+
+Il est clair qu'une augmentation de la population semble être associée à une hausse des taux d’occupation, sans en être nécessairement la cause. Mais la corrélation entre le revenu médian et l'une ou l'autre des deux autres variables semble très faible. Peut-être une telle corrélation est-elle cachée par la taille des bulles? Réduisons l'unité de 0.45 à 0.25 afin de voir ce qui en ressort. 
+
+
+```{r}
+symbols(can.2011$log_pop_2011, can.2011$occ_rate_2011, circles=radius.med.income.2011, inches=0.25, fg="white", bg="red", xlab="Population (log)", ylab="Occupancy Rate")
+title("Total Median Income, by CMA and CA (2011)")
+```
+
+Choux blanc. Mais il y aurait sûrement une relation entre ces quantités si nous incluions la région de la RMR/AR? 
+
+
+```{r}
+symbols(can.2011$log_pop_2011, can.2011$occ_rate_2011, circles=radius.med.income.2011, inches=0.15, fg="white", bg=c("red","blue","black","green","yellow","violet")[can.2011$Region], xlab="Population (log)", ylab="Occupancy Rate")
+title("Total Median Income, by CMA and CA (2011)")
+```
+
+Qu'en pensez-vous? 
+
+Pendant que nous y sommes, pouvez-vous identifier les régions sans la légende? 
+
+
+### 3.2 RMR canadiennes, 2011 <a name=cma></a>
+
+Peut-être que les AR faussent le tableau, étant donné qu'ils sont petits et plus nombreux. Analysons plutôt les données liées au RMR. 
+
+
+```{r}
+can.2011.CMA=read.csv("../Data/Canada2011_CMA.csv", head=TRUE) # importation des données
+#head(can.2011.CMA)
+str(can.2011.CMA) # structure des données (notez le nombre d'observations)
+summary(can.2011.CMA[,3:12], maxsum=13) # Distributions univariées des attributs
+```
+
+Nous pouvons à nouveau utiliser le revenu médian pour le rayon des bulles, mais cette fois, nous allons nous intéresser à la taille de la population et au chômage.
+
+
+```{r}
+radius.med.income.2011.CMA<-sqrt(can.2011.CMA$med_total_income_2011/pi)
+symbols(can.2011.CMA$log_pop_2011, can.2011.CMA$med_unemployment_2011, circles=radius.med.income.2011.CMA, inches=0.25, fg="white", bg=c("red","blue","gray","green","yellow")[can.2011.CMA$Region], ylab="Population (log)", xlab="Unemployment Rate")
+title("Total Median Income, by CMA (2011)")
+text(can.2011.CMA$log_pop_2011, can.2011.CMA$med_unemployment_2011,can.2011.CMA$Geographic.code, cex=0.5)
+```
+
+Une partie du problème est que le revenu médian semble être à peu près uniforme dans les RMR. Et si nous utilisions plutôt des statistiques de classement? En remplaçant le rayon par le rang de la population, par exemple?
+
+
+```{r}
+radius.pop.rank.2011.CMA<-sqrt(can.2011.CMA$pop_rank_2011/pi)
+symbols(can.2011.CMA$med_total_income_2011, can.2011.CMA$med_unemployment_2011, circles=radius.pop.rank.2011.CMA, inches=0.25, fg="white", bg=c("red","blue","gray","green","yellow")[can.2011.CMA$Region], ylab="Median Income", xlab="Unemployment Rate")
+title("Population Rank, by CMA and CA (2011)")
+text(can.2011.CMA$med_total_income_2011, can.2011.CMA$med_unemployment_2011,can.2011.CMA$Geographic.code, cex=0.5)
+```
+
+On retrouve un peu plus de structure ici, n'est-ce pas?
+
+
+[Retour en haut de page](#top)
+
+## 4. Exemple: prolifération d'algues <a name=algae></a>
+
+La capacité de surveiller et d'effectuer des prévisions préliminaires de diverses floraisons d'algues fluviales est cruciale afin de contrôler les dommages écologiques qu'elles peuvent causer.
+
+L'ensemble de données qui est utilisé pour apprendre le modèle d'apprentissage contient 
+- les propriétés chimiques de divers échantillons provenant de cours d'eau européens
+- la quantité de sept algues dans chacun des échantillons, et 
+- les caractéristiques du processus de collecte pour chaque échantillon.  
+
+**Note:** 
+L'ensemble de données se retrouve dans le fichier CSV `algae_blooms.csv`.
+
+
+```{r}
+algae_blooms<-read.csv("../Data/algae_blooms.csv", sep=",", header=TRUE)
+```
+
+Nous pouvons nous faire une idée de la structure de la trame de données à l’aide de `str()`.
+
+
+```{r}
+str(algae_blooms)
+```
+
+De toute évidence, `algae_blooms` contient 340 observations de 18 variables chacune. 
+
+
+On peut construire des histogrammes à l’aide de `hist()`. 
+
+
+
+```{r}
+hist(algae_blooms$mnO2)
+```
+
+Cet histogramme de base peut être amélioré en utilisant la librarie `ggplot2`.
+
+
+
+
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+ggplot(algae_blooms,aes(x=mnO2)) +        # on visualise mnO2, qui fait partie de algae_blooms ...
+    geom_histogram(aes(y=..density..)) +  # par l'entremise d'un histogramme, où l'axe vertical est la densité ... 
+    geom_density(color="blue") +          # sur lequel on superpose une courbe de densité bleue ... 
+    geom_rug() +                          # et un tapis (ou un peigne) montrant où les observations tombent réellement ...
+    ggtitle("Histogramme - 340 observations de mn02") + # avec ce titre ... 
+    xlab("") +                                        # pas d'étiquette sur l'axe des x ...   
+    ylab("")                                          # ni d'étiquette sur l'axe des y
+```
+
+Faisons de même pour `a1`.
+
+
+```{r}
+ggplot(algae_blooms,aes(x=a1)) + 
+    geom_histogram(aes(y=..density..)) +
+    geom_density(color="red") + 
+    geom_rug() +
+    ggtitle("Histogramme - 340 observations de a1") + 
+    xlab("") +
+    ylab("")
+```
+
+Les diagrammes $qq$ ("$qq-$plots”) et les autres diagrammes statistiques traditionnels peuvent être produits avec la fonction `qqPlot()`, provenant de la library `car`. 
+
+
+```{r}
+library(car)
+```
+
+
+```{r}
+qqPlot(algae_blooms$mnO2, main='Diagramme QQ de normalité - mnO2', ylab="")
+```
+
+Là encore, nous pouvons constater que la distribution normale n'est pas bien adaptée à `mnO2`, mais qu'elle est encore pire pour `a1` (voir ci-dessous).
+
+
+```{r}
+qqPlot(algae_blooms$a1, main='Normal QQ de normalité - a1', ylab="")
+```
+
+Examinons maintenant quelques scénarios impliquant `NH4`.
+
+
+```{r}
+ggplot(algae_blooms,aes(x=factor(0),y=NH4)) +   # on visualise NH4, qui fait partie de algae_blooms ...
+    geom_boxplot() +                            # à l'aide d'une boîte à moustache ... 
+    geom_rug() +                                # et un tapis (ou un peigne) ...
+    geom_hline(aes(yintercept=mean(algae_blooms$NH4, na.rm=TRUE)), linetype=2, colour="pink") + # et une droite horizontale indiquant où se situe la valeur moyenne de NH4 ...
+    ylab("Ammonium (NH4+)") +                   
+    xlab("") +
+    scale_x_discrete(breaks=NULL)
+```
+
+Nous ne voyons pas grand-chose ici à cause des valeurs aberrantes suspectées.
+
+
+```{r}
+plot(algae_blooms$NH4, xlab="", ylab="Ammonium (NH4+)") # diagramme de dispersion de NH4 vs. index d'observation
+abline(h=mean(algae_blooms$NH4, na.rm=TRUE), lty=1)     # valeur moyenne de NH4, ligne solide
+abline(h=mean(algae_blooms$NH4, na.rm=TRUE) + sd(algae_blooms$NH4, na.rm=TRUE), lty=2) # valeur (moyenne + écart type), ligne pointillée
+abline(h=median(algae_blooms$NH4, na.rm=TRUE), lty=3)   # valeur médiane de NH4, ligne pointillée 
+# Nous pouvons également examiner les données et voir quelles observations ont NH4 < 3000 (approximativement toutes les valeurs en dessous de la ligne pointillée)
+```
+
+Voyons à quoi ressemble la boîte à moustache sans les aberrations suspectes.
+
+
+```{r}
+ggplot(algae_blooms[-which(algae_blooms$NH4>3000),],aes(x=factor(0),y=NH4)) + 
+    geom_boxplot() + 
+    geom_rug() +
+    geom_hline(aes(yintercept=mean(algae_blooms[-which(algae_blooms$NH4>3000),8], na.rm=TRUE)), linetype=2, colour="pink") +
+    ylab("Ammonium (NH4+)") +
+    xlab("") +
+    scale_x_discrete(breaks=NULL)
+```
+
+C'est un peu mieux, en effet - la structure de boîte s'est élargie. Il semble qu'il y ait encore quelques valeurs très élevées. Peut-être est-ce normal? Comment pourrait-on le déterminer?
+
+
+```{r}
+ggplot(algae_blooms,aes(x=season,y=a3)) +   # a3 par saison ...
+    geom_boxplot() +                        # dans une série de boîtes à moustache ...
+    xlab("Season") +                        #
+    ylab("Algae Level a3")
+```
+
+Nous pouvons réarranger l'ordre des facteurs, mais cela nécessite un peu de créativité à l’aide de la fonction `forcats()` (de la librairie `fct_relevel`), et de la fonction `mutate()`(de `dplyr`).
+
+
+```{r}
+library(forcats) # pour avoir accès à fct_relevel
+library(dplyr)   # pour avoir accès à mutate
+```
+
+
+```{r}
+algae_blooms = mutate(algae_blooms, 
+                     size=fct_relevel(size,c("small","medium","large")), # les facteurs doivent apparaître dans l'ordre souhaité
+                     speed=fct_relevel(speed,c("low","medium","high")),  # pareillement
+                     season=fct_relevel(season,c("spring","summer","autumn","winter")) # ici aussi
+                     )
+```
+
+
+```{r}
+ggplot(algae_blooms,aes(x=season,y=a3)) + 
+    geom_boxplot() +
+    xlab("Season") +
+    ylab("Algae Level a3")
+```
+
+Les **diagrammes de violon** sont les cousins des boîtes à moustache. 
+
+
+```{r}
+ggplot(algae_blooms,aes(x=season,y=a3)) +  # a3 par saison ...
+    geom_violin() +                        # dans une série de diagrammes de violon ... 
+    geom_jitter() +                        # avec un léger “bruit” pour éviter que tous les points ne se superposent ...
+    xlab("Season") + 
+    ylab("Algae Level a3")
+```
+
+(Que se passe-t-il si vous désactivez l'option `jitter`?)
+
+Maintenant, examinons à la fois `NH4` et `season". 
+
+Nous ne gardons que les observations pour lesquelles `NH4` $> 3000$, et nous les regroupons par rapport aux **quartiles**.
+
+
+
+
+```{r}
+f.NH4.data <- filter(algae_blooms,!is.na(NH4)) %>% 
+    filter(NH4<3000) %>% 
+    mutate(q.NH4=cut(NH4,quantile(NH4,c(0,0.25,0.5,0.75,1)), include.lowest=TRUE))
+table(f.NH4.data$q.NH4,useNA="ifany")
+```
+
+
+```{r}
+ggplot(f.NH4.data,aes(x=a1,y=season,color=season)) +
+    geom_point() +
+    facet_wrap(~q.NH4) +
+    guides(color=FALSE) +
+    ggtitle("a1 par season et quartiles de NH4")
+```
+
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+library("dslabs")
+data(package="dslabs")
+```
+
+
+[Retour en haut de page](#top)
+
+## 5. `ggplot2` et le "tidyverse"" <a name=ggtv></a>
+
+### 5.1 Meurtres aux États-Unis (2010) <a name=murders></a>
+
+
+```{r}
+data("murders")
+```
+
+
+```{r}
+?murders
+```
+
+
+```{r}
+head(murders)
+```
+
+
+```{r}
+str(murders)
+library(tidyverse)
+```
+
+
+```{r}
+r <- murders %>%
+  summarize(pop=sum(population), tot=sum(total)) %>%
+  mutate(rate = tot/pop*10^6) %>% .$rate
+
+r
+```
+
+
+```{r}
+library(ggrepel)
+library(ggthemes)
+murders %>% ggplot(aes(x = population/10^6, y = total, label = abb)) +
+  geom_abline(intercept = log10(r), lty=2, col="darkgrey") +
+  geom_point(aes(color=region), size = 3) +
+  geom_text_repel() +
+  scale_x_log10() +
+  scale_y_log10() +
+  xlab("Population en millions (échelle logarithmique)") +
+  ylab("Nombre total de meurtres ((échelle logarithmique))") +
+  ggtitle("Meurtres par arme à feu aux États-Unis") +
+  scale_color_discrete(name="Région") 
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.2. Gapminder <a name=gapminder></a>
+
+
+```{r}
+data("gapminder")
+?gapminder
+```
+
+
+```{r}
+head(gapminder)
+```
+
+
+```{r}
+str(gapminder)
+summary(gapminder)
+```
+
+
+```{r}
+west <- c("Western Europe","Northern Europe","Southern Europe",
+          "Northern America","Australia and New Zealand")
+
+gapminder <- gapminder %>%
+  mutate(group = case_when(
+    region %in% west ~ "The West",
+    region %in% c("Eastern Asia", "South-Eastern Asia") ~ "East Asia",
+    region %in% c("Caribbean", "Central America", "South America") ~ "Latin America",
+    continent == "Africa" & region != "Northern Africa" ~ "Sub-Saharan Africa",
+    TRUE ~ "Others"))
+gapminder <- gapminder %>%
+  mutate(group = factor(group, levels = rev(c("Others", "Latin America", "East Asia","Sub-Saharan Africa", "The West"))))
+
+filter(gapminder, year%in%c(1962, 2013) & !is.na(group) &
+         !is.na(fertility) & !is.na(life_expectancy)) %>%
+  mutate(population_in_millions = population/10^6) %>%
+  ggplot( aes(fertility, y=life_expectancy, col = group, size = population_in_millions)) +
+  geom_point(alpha = 0.8) + 
+  guides(size=FALSE) +
+  theme(plot.title = element_blank(), legend.title = element_blank()) +
+  coord_cartesian(ylim = c(30, 85)) +
+  xlab("Taux de fertilité (naissance par femme)") +
+  ylab("Espérance de vie") +
+  geom_text(aes(x=7, y=82, label=year), cex=12, color="grey") +
+  facet_grid(. ~ year) +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+   legend.position = "top")
+```
+
+
+```{r}
+gapminder$gdppc = gapminder$gdp/gapminder$population
+gapminder2 <- gapminder[,c(1,2,4,6,8,9,11)]
+head(gapminder2)
+```
+
+
+```{r}
+filter(gapminder2, year%in%c(2011) & !is.na(gdppc) & !is.na(life_expectancy)) %>%
+  mutate(population_in_millions = (population/10^6)) %>%
+  ggplot( aes(x=gdppc, y=life_expectancy, col = continent, size = population_in_millions, label = country)) +
+  geom_point(alpha = 1) + 
+  geom_text_repel() +
+  guides(size=FALSE) +
+  theme(plot.title = element_blank(), legend.title = element_blank()) +
+  coord_cartesian(ylim = c(40, 85)) +
+  scale_x_log10() +
+  xlab("PIB par habitant (échelle logarithmique)") +
+  ylab("Espérance de vie (en années)") +
+  ggtitle("Santé et richesse des nations (2011)") +
+  #facet_grid(. ~ year) +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+   legend.position = "top")
+```
+
+
+```{r}
+filter(gapminder2, year%in%c(2011) & !is.na(gdppc) & !is.na(life_expectancy)) %>%
+  mutate(population_in_millions = (population/10^6)) %>%
+  ggplot( aes(x=gdppc, y=life_expectancy, col = continent, size = population_in_millions, label = country)) +
+  geom_point(alpha = 1) + 
+  geom_smooth(method='lm',formula=y~x, se=FALSE) + 
+  guides(size=FALSE) +
+  theme(plot.title = element_blank(), legend.title = element_blank()) +
+  coord_cartesian(ylim = c(40, 85)) +
+  scale_x_log10() +
+  xlab("PIB par habitant (échelle logarithmique)") +
+  ylab("Espérance de vie (en années)") +
+  ggtitle("Santé et richesse des nations (2011)") +
+  #facet_grid(. ~ year) +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+   legend.position = "top")
+```
+
+
+```{r}
+filter(gapminder2, year%in%c(2011) & !is.na(gdppc) & !is.na(life_expectancy)) %>%
+  mutate(population_in_millions = (population/10^6)) %>%
+  ggplot( aes(x=gdppc, y=life_expectancy, size = population_in_millions, label = country)) +
+  geom_point(alpha = 1) + 
+  geom_smooth(method='lm',formula=y~x, se=FALSE) + 
+  guides(size=FALSE) +
+  theme(plot.title = element_blank(), legend.title = element_blank()) +
+  coord_cartesian(ylim = c(40, 85)) +
+  scale_x_log10() +
+  xlab("PIB par habitant (échelle logarithmique)") +
+  ylab("Espérance de vie (en années)") +
+  ggtitle("Santé et richesse des nations (2011)") +
+  #facet_grid(. ~ year) +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+   legend.position = "top")
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.3 Élection présidentielle américaine de 2016 - sondages <a name=538></a>
+
+
+
+```{r}
+data(polls_us_election_2016)
+?polls_us_election_2016
+head(polls_us_election_2016)
+str(polls_us_election_2016)
+summary(polls_us_election_2016)
+```
+
+
+```{r}
+polls_us_election_2016 %>%
+  filter(state == "U.S." & enddate>="2016-07-01") %>%
+  select(enddate, pollster, rawpoll_clinton, rawpoll_trump) %>%
+  rename(Clinton = rawpoll_clinton, Trump = rawpoll_trump) %>%
+  gather(candidate, percentage, -enddate, -pollster) %>% 
+  mutate(candidate = factor(candidate, levels = c("Trump","Clinton")))%>%
+  group_by(pollster) %>%
+  filter(n()>=10) %>%
+  ungroup() %>%
+  ggplot(aes(enddate, percentage, color = candidate)) +  
+  geom_point(show.legend = FALSE, alpha=0.4)  + 
+  geom_smooth(method = "loess", span = 0.15) +
+  scale_y_continuous(limits = c(30,50))
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.4 Maladies <a name=diseases></a>
+
+
+```{r}
+library(RColorBrewer)
+data("us_contagious_diseases")
+?us_contagious_diseases
+head(us_contagious_diseases)
+str(us_contagious_diseases)
+summary(us_contagious_diseases)
+```
+
+
+```{r}
+the_disease <- "Pertussis"
+us_contagious_diseases %>%
+  filter(disease ==  the_disease) %>%
+  mutate(rate = count / population * 10000 * 52 / weeks_reporting) %>%
+  mutate(state = reorder(state, rate)) %>%
+  ggplot(aes(year, state,  fill = rate)) +
+  geom_tile(color = "grey50") +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_fill_gradientn(colors = brewer.pal(9, "Reds"), trans = "sqrt") +
+  geom_vline(xintercept=1963, col = "blue") +
+  theme_minimal() +  theme(panel.grid = element_blank()) +
+  ggtitle(the_disease) +
+  ylab("") +
+  xlab("")
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.5 Données artificielles <a name=random></a>
+
+
+```{r}
+library("ggplot2")
+theme_set(theme_bw()) # on utilise le thème "noir et blanc" tout au long de l'exercice
+# artificial data:
+d <- data.frame(x = c(1:8, 1:8), y = runif(16),
+  group1 = rep(gl(2, 4, labels = c("a", "b")), 2),
+  group2 = gl(2, 8))
+head(d)
+```
+
+
+```{r}
+ggplot(data = d) + geom_point(aes(x, y, colour = group1)) +
+  facet_grid(~group2)
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.6 Chanteurs de la New York Choral Society <a name=singers></a>
+
+
+```{r}
+library("ggplot2")
+data(singer, package="lattice")
+?singer
+summary(singer,8)
+table(singer$height,singer$voice.part)
+```
+
+
+```{r}
+ggplot(singer, aes(x=height)) + geom_histogram()
+ggplot(singer, aes(x=voice.part, y=height)) + geom_boxplot()
+```
+
+
+```{r}
+ggplot(data=singer, aes(x=height)) +
+       geom_histogram() +
+       facet_wrap(~voice.part, nrow=4)
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.7 Salaires des professeurs d’université <a name=salaries></a>
+
+
+```{r}
+data(package="car")
+head(Salaries)
+summary(Salaries)
+```
+
+
+```{r}
+ggplot(Salaries, aes(x=rank, y=salary)) +
+       geom_boxplot(fill="cornflowerblue",
+       color="black", notch=TRUE)+
+       geom_point(position="jitter", color="blue", alpha=.5)+
+       geom_rug(side="l", color="black")
+```
+
+
+```{r}
+ggplot(Salaries, aes(x=yrs.since.phd, y=salary, color=rank,
+       shape=rank)) + geom_point() + facet_grid(.~sex)
+```
+
+
+```{r}
+p1 <- ggplot(data=Salaries, aes(x=rank)) + geom_bar()
+p2 <- ggplot(data=Salaries, aes(x=sex)) + geom_bar()
+p3 <- ggplot(data=Salaries, aes(x=yrs.since.phd, y=salary)) + geom_point()
+
+library(gridExtra)
+grid.arrange(p1, p2, p3, ncol=3)
+
+```
+
+
+```{r}
+library(car)
+library(ggplot2)
+mytheme <- theme(plot.title=element_text( 
+                face="bold.italic", size="14", 
+                color="brown"), axis.title= 
+                element_text( face="bold.italic",
+                    size=10, color="brown"),
+                axis.text=element_text( 
+                    face="bold", size=9,
+                    color="darkblue"),
+                panel.background=element_rect( 
+                    fill="white",color="darkblue"),
+                panel.grid.major.y=element_line( 
+                    color="grey", linetype=1),
+                panel.grid.minor.y=element_line( 
+                    color="grey", linetype=2),
+                panel.grid.minor.x=element_blank(),
+                legend.position="top")
+
+ggplot(Salaries, aes(x=rank, y=salary, fill=sex)) +
+       geom_boxplot() +
+       labs(title="Salaire par rang et sexe", x="rang", y="salaire") +
+       mytheme
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.8 MPG <a name="mpg"></a>
+
+
+```{r}
+head(mpg)
+```
+
+
+```{r}
+?mpg
+```
+
+
+```{r}
+ggplot(mpg, aes(cty, hwy)) + geom_point(aes(colour = class))
+ggplot(mpg, aes(cty, hwy)) + geom_point(colour = "red")
+
+```
+
+
+[Retour en haut de page](#top)
+
+### 5.9 Téléphones dans le monde <a name="phones"></a>
+
+
+```{r}
+data("WorldPhones")
+head(WorldPhones)
+help(WorldPhones)
+library(reshape2)
+WorldPhones.m = melt(WorldPhones)
+head(WorldPhones.m)
+colnames(WorldPhones.m) = c("Year", "Continent", "Phones")
+head(WorldPhones.m)
+ggplot(WorldPhones.m, aes(x=Year, y=Phones, color=Continent)) + geom_point()
+ggplot(WorldPhones.m, aes(x=Year, y=Phones, color=Continent)) + geom_line()
+ggplot(WorldPhones.m, aes(x=Year, y=Phones, color=Continent)) + geom_line() + scale_y_log10()
+
+```
+
+[Retour en haut de page](#top)
+
+## <a name=""></a> 6. Autres exemples et méthodes <a name="examples"></a>
+
+### <a name="0"></a> 6.1 Courbes de lissage
+
+```{r}
+options(scipen=999)  # désactiver la notation scientifique comme 1e+48
+library(ggplot2)
+theme_set(theme_bw())  # theme noir et blanc
+data("midwest", package = "ggplot2")
+# midwest <- read.csv("http://goo.gl/G1K41K")  # source de données de sauvegarde
+
+# Scatterplot
+gg <- ggplot(midwest, aes(x=area, y=poptotal)) + 
+  geom_point(aes(col=state, size=popdensity)) + 
+  geom_smooth(method="loess", se=F) + 
+  xlim(c(0, 0.1)) + 
+  ylim(c(0, 500000)) + 
+  labs(subtitle="Superficie vs Population", 
+       y="Population", 
+       x="Superficie", 
+       title="Diagrame de dispersion", 
+       caption = "Source: midwest")
+
+plot(gg)
+```
+
+[Retour en haut de page](#top)
+
+### <a name="00"></a> 6.2 Diagrammes de "jitter"
+
+```{r}
+data(mpg, package="ggplot2")
+# mpg <- read.csv("http://goo.gl/uEeRGu")
+
+mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
+
+# Diagramme de dispersion
+theme_set(theme_bw())  
+g <- ggplot(mpg_select, aes(displ, cty)) + 
+  labs(subtitle="mpg: Displacement vs Mileage urbain",
+       title="Diagramme à bulles")
+
+g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
+  geom_smooth(aes(col=manufacturer), method="lm", se=F)
+```
+
+[Retour en haut de page](#top)
+
+### <a name="000"></a> 6.3 Animations
+
+```{r}
+# Source: https://github.com/dgrtwo/gganimate
+# install.packages("devtools")
+# install.packages("cowplot")  # un pré-requis pour gganimate
+# devtools::install_github("dgrtwo/gganimate")
+
+
+library(ggplot2)
+library(gganimate)
+library(gapminder)
+theme_set(theme_bw())  # 
+
+head(gapminder)
+
+ggplot(gapminder, aes(gdppc, life_expectancy, size = population, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  #scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # voici les éléments spécifiques de gganimate
+  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+  transition_time(year) +
+  ease_aes('linear')
+
+# anim_save(file="gapminder.gif") # sauvegardé, mais non-affiché
+```
+
+[Retour en haut de page](#top)
+
+### <a name="1"></a> 6.4 Distributions marginales
+
+```{r}
+library(ggplot2)
+library(ggExtra)
+data(mpg, package="ggplot2")
+# mpg <- read.csv("http://goo.gl/uEeRGu")
+
+# Diagramme de dispersion
+theme_set(theme_bw())  # 
+mpg_select <- mpg[mpg$hwy >= 35 & mpg$cty > 27, ]
+g <- ggplot(mpg, aes(cty, hwy)) + 
+  geom_count() + 
+  geom_smooth(method="lm", se=F)
+
+ggMarginal(g, type = "histogram", fill="transparent")
+ggMarginal(g, type = "boxplot", fill="transparent")
+# ggMarginal(g, type = "density", fill="transparent")
+```
+
+[Retour en haut de page](#top)
+
+### <a name="2"></a> 6.5 Diagrammes à barres divergentes
+
+```{r}
+library(ggplot2)
+theme_set(theme_bw())  
+# Préparation des données
+data("mtcars")  # chargement des données
+mtcars$`car name` <- rownames(mtcars)  # créer une nouvelle colonne pour les noms de voitures
+mtcars$mpg_z <- round((mtcars$mpg - mean(mtcars$mpg))/sd(mtcars$mpg), 2)  # calculer le mpg normalisé
+mtcars$mpg_type <- ifelse(mtcars$mpg_z < 0, "below", "above")  # créer indicateur au-dessus / au-dessous de la moyenne
+mtcars <- mtcars[order(mtcars$mpg_z), ]  # trier les valeurs
+mtcars$`car name` <- factor(mtcars$`car name`, levels = mtcars$`car name`)  # convertir en facteur pour conserver l'ordre trié dans le diagramme
+
+# Diagrammes à barres divergentes
+ggplot(mtcars, aes(x=`car name`, y=mpg_z, label=mpg_z)) + 
+  geom_bar(stat='identity', aes(fill=mpg_type), width=.5)  +
+  scale_fill_manual(name="Mileage", 
+                    labels = c("En haut de la moyenne", "En bas de la moyenne"), 
+                    values = c("above"="#00ba38", "below"="#f8766d")) + 
+  labs(subtitle="mileage normalisé dans 'mtcars'", 
+       title= "Diagramme à barres divergentes") + 
+  coord_flip()
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="3"></a> 6.6 Diagrammes de superficie
+
+```{r}
+library(ggplot2)
+library(quantmod)
+data("economics", package = "ggplot2")
+
+# Calculer le % de retours
+economics$returns_perc <- c(0, diff(economics$psavert)/economics$psavert[-length(economics$psavert)])
+
+# Créer des points de rupture et des étiquettes pour les tiques d'axe
+brks <- economics$date[seq(1, length(economics$date), 12)]
+lbls <- lubridate::year(economics$date[seq(1, length(economics$date), 12)]) 
+
+# Diagramme
+ggplot(economics[1:100, ], aes(date, returns_perc)) + 
+  geom_area() + 
+  scale_x_date(breaks=brks, labels=lbls) + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  labs(title="Diagramme de superficie", 
+       subtitle = "Rendements % d'épargne personnelle", 
+       y="Rendements % d'épargne personnelle", 
+       caption="Source: economics")
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="4"></a> 6.7 Diagrammes en entonnoir
+
+```{r}
+library(ggplot2)
+library(ggthemes)
+options(scipen = 999)  # 
+# chargement des données
+email_campaign_funnel <- read.csv("https://raw.githubusercontent.com/selva86/datasets/master/email_campaign_funnel.csv")
+
+# Séparation et étiquettes de l'axe des x
+brks <- seq(-15000000, 15000000, 5000000)
+lbls = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")
+
+# Diagrammes
+ggplot(email_campaign_funnel, aes(x = Stage, y = Users, fill = Gender)) +   # Fill column
+                              geom_bar(stat = "identity", width = .6) +   # draw the bars
+                              scale_y_continuous(breaks = brks,   # Breaks
+                                                 labels = lbls) + # Labels
+                              coord_flip() +  # Flip axes
+                              labs(title="Diagramme en entonnoir - campagne courriel") +
+                              theme_tufte() +  # Tufte theme from ggfortify
+                              theme(plot.title = element_text(hjust = .5), 
+                                    axis.ticks = element_blank()) +   # Centre plot title
+                              scale_fill_brewer(palette = "Dark2")  # Color palette
+```
+
+[Retour en haut de page](#top)
+
+### <a name="5"></a> 6.8 Cartes thermiques
+
+```{r}
+# http://margintale.blogspot.in/2012/04/ggplot2-time-series-heatmaps.html
+library(ggplot2)
+library(plyr)
+library(scales)
+library(zoo)
+
+df <- read.csv("https://raw.githubusercontent.com/selva86/datasets/master/yahoo.csv")
+df$date <- as.Date(df$date)  # mise en forme de la date
+df <- df[df$year >= 2012, ]  # filtre sur les années
+
+# Créer les semaines du mois
+df$yearmonth <- as.yearmon(df$date)
+df$yearmonthf <- factor(df$yearmonth)
+df <- ddply(df,.(yearmonthf), transform, monthweek=1+week-min(week))  # 
+df <- df[, c("year", "yearmonthf", "monthf", "week", "monthweek", "weekdayf", "VIX.Close")]
+head(df)
+
+# Diagramme
+ggplot(df, aes(monthweek, weekdayf, fill = VIX.Close)) + 
+  geom_tile(colour = "white") + 
+  facet_grid(year~monthf) + 
+  scale_fill_gradient(low="red", high="green") +
+  labs(x="Semaine du mois",
+       y="",
+       title = "Calendrier thermique", 
+       subtitle="Prix de fermeture - Yahoo", 
+       fill="Close")
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="6"></a> 6.9 Diagrammes à barres ordonnées
+
+```{r}
+# Préparation des données: regroupement des valeurs de mileage urbain moyen parfabricant.
+cty_mpg <- aggregate(mpg$cty, by=list(mpg$manufacturer), FUN=mean)  # agrégation des valeurs
+colnames(cty_mpg) <- c("make", "mileage")  # changement des nom de colonnes
+cty_mpg <- cty_mpg[order(cty_mpg$mileage), ]  # triage
+cty_mpg$make <- factor(cty_mpg$make, levels = cty_mpg$make)  # 
+head(cty_mpg, 4)
+
+library(ggplot2)
+theme_set(theme_bw())
+
+# Diagramme
+ggplot(cty_mpg, aes(x=make, y=mileage)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Diagramme aà barres ordonnées", 
+       subtitle="marque vs mileage moyen", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="7"></a> 6.10 Corrélogrammes
+
+```{r}
+library(ggplot2)
+library(ggcorrplot)
+
+# matrice de corrélation
+data(mtcars)
+corr <- round(cor(mtcars), 1)
+
+# Diagramme
+ggcorrplot(corr, hc.order = TRUE, 
+           type = "lower", 
+           lab = TRUE, 
+           lab_size = 3, 
+           method="circle", 
+           colors = c("tomato2", "white", "springgreen3"), 
+           title="Corrélogramme - mtcars", 
+           ggtheme=theme_bw)
+```
+
+[Retour en haut de page](#top)
+
+### <a name="8"></a> 6.11 Diagrammes "Treemap"
+
+```{r}
+library(devtools)
+#devtools::install_github("wilkox/treemapify")
+library(treemapify)
+library(ggplot2)
+data(G20)
+head(G20)
+
+ggplot(G20, aes(area = gdp_mil_usd, fill = region, label = country)) +
+  geom_treemap() +
+  geom_treemap_text(grow = T, reflow = T, colour = "black") +
+  facet_wrap( ~ econ_classification) +
+  scale_fill_brewer(palette = "Set1") +
+  theme(legend.position = "bottom") +
+  labs(
+    title = "Les économies du G-20",
+    caption = "La superficie des tuiles de chaque pays est proportionnelle à son PIB relatif au sein du G-20 (avancé ou en développement)",
+    fill = "Region"
+  )
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="9"></a> 6.12 Diagrammes de réseaux
+
+```{r}
+library(ggplot2)
+library(ggnetwork)
+library(geomnet)
+library(network)
+
+# chargement des données
+data(madmen, package = 'geomnet')
+
+# créer un réseau non dirigé
+mm.net <- network(madmen$edges[, 1:2], directed = FALSE)
+mm.net # regard sur l'objet réseau
+
+# créer un attribut (genre) de nodule
+rownames(madmen$vertices) <- madmen$vertices$label
+mm.net %v% "gender" <- as.character(
+  madmen$vertices[ network.vertex.names(mm.net), "Gender"]
+)
+
+# palette de couleurs, par genre
+mm.col <- c("female" = "#ff0000", "male" = "#00ff00")
+set.seed(10052016)
+ggplot(data = ggnetwork(mm.net, layout = "kamadakawai"),
+       aes(x, y, xend = xend, yend = yend)) +
+  geom_edges(color = "grey50") +               # dessiner la couche des arrêtes
+  geom_nodes(aes(colour = gender), size = 2) + # dessiner la couche des nodules
+  geom_nodetext(aes(colour = gender, label = vertex.names),
+                size = 3, vjust = -0.6) +      # dessiner la couche de textes
+  scale_colour_manual(values = mm.col) +
+  xlim(c(-0.05, 1.05)) +
+  theme_blank() +
+  theme(legend.position = "bottom")
+```
+
+[Retour en haut de page](#top)
+
+### <a name="10"></a> 6.13 Diagrammes de coordonnées parallèles
+
+```{r}
+library(triangle)
+set.seed(0)
+
+q1_d1 <- round(rtriangle(1000, 1, 7, 5))
+q1_d2 <- round(rtriangle(1000, 1, 7, 6))
+q1_d3 <- round(rtriangle(1000, 1, 7, 2))
+df <- data.frame(q1_d1 = factor(q1_d1), q1_d2 = factor(q1_d2), q1_d3 =  factor(q1_d3))
+
+library(dplyr)
+
+# regroupement par combinaisons, compte
+df_grouped <- df %>% group_by(q1_d1, q1_d2, q1_d3) %>% count()
+
+# fixer un code d'identification qui indique la combinaison de valeurs
+df_grouped <- df_grouped %>% mutate(id = factor(paste(q1_d1, q1_d2, q1_d3, sep = '-')))
+order.freq <- order(df_grouped[,4],decreasing=TRUE)
+
+# triage par le compte et sélection des premières lignes
+df_grouped <- df_grouped[order.freq[1:25],]
+
+library(reshape2)
+library(ggplot2)
+
+# création d'un format long
+df_pcp <- melt(df_grouped, id.vars = c('id', 'freq'))
+df_pcp$value <- factor(df_pcp$value)
+
+y_levels <- levels(factor(1:7))
+ggplot(df_pcp, aes(x = variable, y = value, group = id)) +   # group = id is important!
+  geom_path(aes(size = freq, color = id),
+            alpha = 0.5,
+            lineend = 'round', linejoin = 'round') +
+  scale_y_discrete(limits = y_levels, expand = c(0.5, 0)) +
+  scale_size(breaks = NULL, range = c(1, 7))
+```
+
+[Retour en haut de page](#top)
+
+### <a name="11"></a> 6.14 Séries chronologiques et variantes
+
+```{r}
+## à partir d’un objet “timeseries" (ts)
+library(ggplot2)
+library(ggfortify)
+theme_set(theme_classic())
+
+# Plot 
+autoplot(AirPassengers) + 
+  labs(title="Passagers aériens") + 
+  theme(plot.title = element_text(hjust=0.5))
+```
+
+
+```{r}
+library(ggplot2)
+theme_set(theme_classic())
+
+# Autoriser les étiquettes par défaut de l'axe des x
+ggplot(economics, aes(x=date)) + 
+  geom_line(aes(y=unemploy)) + 
+  labs(title="Série chronologique", 
+       subtitle="Nombre de chômeurs (en milliers) d'après l'ensemble de données `Economics-US'", 
+       caption="Source: economics", 
+       y="chômeurs")
+```
+
+
+```{r}
+library(ggplot2)
+library(lubridate)
+theme_set(theme_bw())
+
+economics_m <- economics[1:24, ]
+
+# étiquettes et coupures pour le texte de l'axe des x
+lbls <- paste0(month.abb[month(economics_m$date)], " ", lubridate::year(economics_m$date))
+brks <- economics_m$date
+
+# diagrammes
+ggplot(economics_m, aes(x=date)) + 
+  geom_line(aes(y=pce)) + 
+  labs(title="Série chronologique mensuelle", 
+       subtitle="Dépenses de consommation personnelle, en milliards de dollars", 
+       caption="Source: economics", 
+       y="dcp") + # titre et légendes
+  scale_x_date(labels = lbls, breaks = brks) +  # tiques et étiquettes mensuelles
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5),  # rotation du texte de l'axe des x
+        panel.grid.minor = element_blank())  # désactiver les grilles de 2e plan
+```
+
+
+```{r}
+library(ggplot2)
+library(lubridate)
+theme_set(theme_bw())
+
+economics_y <- economics[1:90, ]
+
+# étiquettes et coupures pour le texte de l'axe des x
+brks <- economics_y$date[seq(1, length(economics_y$date), 12)]
+lbls <- lubridate::year(brks)
+
+# plot
+ggplot(economics_y, aes(x=date)) + 
+  geom_line(aes(y=psavert)) + 
+  labs(title="Série chronologique annuelle", 
+       subtitle="Taux d'épargne des ménages", 
+       caption="Source: economics", 
+       y="tem") +  
+  scale_x_date(labels = lbls, breaks = brks) + 
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5),  
+        panel.grid.minor = element_blank())  
+```
+
+
+```{r}
+data(economics_long, package = "ggplot2")
+head(economics_long)
+
+library(ggplot2)
+library(lubridate)
+theme_set(theme_bw())
+df <- economics_long[economics_long$variable %in% c("psavert", "uempmed"), ]
+df <- df[lubridate::year(df$date) %in% c(1967:1981), ]
+
+brks <- df$date[seq(1, length(df$date), 12)]
+lbls <- lubridate::year(brks)
+
+ggplot(df, aes(x=date)) + 
+  geom_line(aes(y=value, col=variable)) + 
+  labs(title="Série chronologique des % de retours ", 
+       subtitle="Tiré du format long", 
+       caption="Source: economics", 
+       y="% retours", 
+       color=NULL) +  
+  scale_x_date(labels = lbls, breaks = brks) +  
+  scale_color_manual(labels = c("psavert", "uempmed"), 
+                     values = c("psavert"="#00ba38", "uempmed"="#f8766d")) + # couleur des courbes
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 8), 
+        panel.grid.minor = element_blank())  
+```
+
+
+```{r}
+library(ggplot2)
+library(lubridate)
+theme_set(theme_bw())
+
+df <- economics[, c("date", "psavert", "uempmed")]
+df <- df[lubridate::year(df$date) %in% c(1967:1981), ]
+
+brks <- df$date[seq(1, length(df$date), 12)]
+lbls <- lubridate::year(brks)
+
+ggplot(df, aes(x=date)) + 
+  geom_area(aes(y=psavert+uempmed, fill="psavert")) + 
+  geom_area(aes(y=uempmed, fill="uempmed")) + 
+  labs(title="Diagramme de superficie - % de retours", 
+       subtitle="Tiré du format 'wide'", 
+       caption="Source: economics", 
+       y="% retours") +  
+  scale_x_date(labels = lbls, breaks = brks) +  
+  scale_fill_manual(name="", 
+                    values = c("psavert"="#00ba38", "uempmed"="#f8766d")) + 
+  theme(panel.grid.minor = element_blank())  # 
+```
+
+
+```{r}
+library(ggplot2)
+library(forecast)
+theme_set(theme_classic())
+
+# sous-ensemble des données
+nottem_small <- window(nottem, start=c(1920, 1), end=c(1925, 12))  
+
+# Plot
+ggseasonplot(AirPassengers) + labs(title="Passagers des compagnies aériennes internationales")
+ggseasonplot(nottem_small) + labs(title="Températures de l'air au château de Nottingham")
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="12"></a> 6.15 Regroupements
+
+```{r}
+# devtools::install_github("hrbrmstr/ggalt")
+library(ggplot2)
+library(ggalt)
+library(ggfortify)
+theme_set(theme_classic())
+
+# Calculer les projections sur les composantes principales
+df <- iris[c(1, 2, 3, 4)]
+pca_mod <- prcomp(df)  # calcul des componsantes principales
+
+# Trames de données
+df_pc <- data.frame(pca_mod$x, Species=iris$Species)  # componsantes principales
+df_pc_vir <- df_pc[df_pc$Species == "virginica", ]  # 'virginica'
+df_pc_set <- df_pc[df_pc$Species == "setosa", ]  # 'setosa'
+df_pc_ver <- df_pc[df_pc$Species == "versicolor", ]  # 'versicolor'
+
+# Diagramme
+ggplot(df_pc, aes(PC1, PC2, col=Species)) + 
+  geom_point(aes(shape=Species), size=2) +   
+  labs(title="Iris Clustering", 
+       subtitle="With principal components PC1 and PC2 as X and Y axis",
+       caption="Source: Iris") + 
+  coord_cartesian(xlim = 1.2 * c(min(df_pc$PC1), max(df_pc$PC1)), 
+                  ylim = 1.2 * c(min(df_pc$PC2), max(df_pc$PC2))) +   # modifier les limites des axes
+  geom_encircle(data = df_pc_vir, aes(x=PC1, y=PC2)) +   # tracer les courbes
+  geom_encircle(data = df_pc_set, aes(x=PC1, y=PC2)) + 
+  geom_encircle(data = df_pc_ver, aes(x=PC1, y=PC2))
+```
+
+[Retour en haut de page](#top)
+
+### <a name="13"></a> 6.16 diagrammes à haltères
+
+```{r}
+# devtools::install_github("hrbrmstr/ggalt")
+library(ggplot2)
+library(ggalt)
+theme_set(theme_classic())
+
+health <- read.csv("https://raw.githubusercontent.com/selva86/datasets/master/health.csv")
+
+# pour le bon ordre des haltères
+health$Area <- factor(health$Area, levels=as.character(health$Area))  
+# health$Area <- factor(health$Area)
+
+gg <- ggplot(health, aes(x=pct_2013, xend=pct_2014, y=Area, group=Area)) + 
+        geom_dumbbell(color="#a3c4dc", 
+                      size=0.75, 
+                      point.colour.l="#0e668b") + 
+        scale_x_continuous(label=waiver()) + 
+        labs(x=NULL, 
+             y=NULL, 
+             title="Diagramme à haltères", 
+             subtitle="% changement: 2013 vs 2014", 
+             caption="Source: https://github.com/hrbrmstr/ggalt") +
+        theme(plot.title = element_text(hjust=0.5, face="bold"),
+              plot.background=element_rect(fill="#f7f7f7"),
+              panel.background=element_rect(fill="#f7f7f7"),
+              panel.grid.minor=element_blank(),
+              panel.grid.major.y=element_blank(),
+              panel.grid.major.x=element_line(),
+              axis.ticks=element_blank(),
+              legend.position="top",
+              panel.border=element_blank())
+plot(gg)
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="14"></a> 6.17 Diagrammes à pentes
+
+```{r}
+library(dplyr)
+theme_set(theme_classic())
+source_df <- read.csv("https://raw.githubusercontent.com/jkeirstead/r-slopegraph/master/cancer_survival_rates.csv")
+
+# Définition des fonctions. Source: https://github.com/jkeirstead/r-slopegraph
+tufte_sort <- function(df, x="year", y="value", group="group", method="tufte", min.space=0.05) {
+    ## Renommez d'abord les colonnes pour des raisons de cohérence
+    ids <- match(c(x, y, group), names(df))
+    df <- df[,ids]
+    names(df) <- c("x", "y", "group")
+
+    ## Élargir la grille pour que chaque combinaison ait une valeur définie
+    tmp <- expand.grid(x=unique(df$x), group=unique(df$group))
+    tmp <- merge(df, tmp, all.y=TRUE)
+    df <- mutate(tmp, y=ifelse(is.na(y), 0, y))
+  
+    ## Placer sous forme de matrice et disposer selon la première colonne
+    require(reshape2)
+    tmp <- dcast(df, group ~ x, value.var="y")
+    ord <- order(tmp[,2])
+    tmp <- tmp[ord,]
+    
+    min.space <- min.space*diff(range(tmp[,-1]))
+    yshift <- numeric(nrow(tmp))
+    ## Commencer à la ligne du “bas"
+    ## Répéter pour les autres rangées jusqu'à ce que vous atteigniez le haut
+    for (i in 2:nrow(tmp)) {
+        ## Déplacer la ligne suivante vers le haut d'un espace égal de manière à ce que l'écart entre
+        ## deux entrêes est >= minimum
+        mat <- as.matrix(tmp[(i-1):i, -1])
+        d.min <- min(diff(mat))
+        yshift[i] <- ifelse(d.min < min.space, min.space - d.min, 0)
+    }
+
+    
+    tmp <- cbind(tmp, yshift=cumsum(yshift))
+
+    scale <- 1
+    tmp <- melt(tmp, id=c("group", "yshift"), variable.name="x", value.name="y")
+    
+    ## Stocker ces écarts dans une variable séparée afin qu'ils puissent être mis à l'échelle ypos = a*yshift + y
+    tmp <- transform(tmp, ypos=y + scale*yshift)
+    return(tmp)
+   
+}
+plot_slopegraph <- function(df) {
+    ylabs <- subset(df, x==head(x,1))$group
+    yvals <- subset(df, x==head(x,1))$ypos
+    fontSize <- 3
+    gg <- ggplot(df,aes(x=x,y=ypos)) +
+        geom_line(aes(group=group),colour="grey80") +
+        geom_point(colour="white",size=8) +
+        geom_text(aes(label=y), size=fontSize, family="American Typewriter") +
+        scale_y_continuous(name="", breaks=yvals, labels=ylabs)
+    return(gg)
+}    
+
+## Préparer les données    
+df <- tufte_sort(source_df, 
+                 x="year", 
+                 y="value", 
+                 group="group", 
+                 method="tufte", 
+                 min.space=0.05)
+
+df <- transform(df, 
+                x=factor(x, levels=c(5,10,15,20), 
+                            labels=c("5 ans","10 ans","15 ans","20 ans")), 
+                y=round(y))
+
+## Diaramme
+plot_slopegraph(df) + labs(title="Taux de survie") + 
+                      theme(axis.title=element_blank(),
+                            axis.ticks = element_blank(),
+                            plot.title = element_text(hjust=0.5,
+                                                      family = "American Typewriter",
+                                                      face="bold"),
+                            axis.text = element_text(family = "American Typewriter",
+                                                     face="bold"))
+```
+
+[Retour en haut de page](#top)
+
+### <a name="15"></a> 6.18 Dendrogrammes
+
+```{r}
+library("ggplot2")
+library("ggdendro")
+theme_set(theme_bw())
+hc <- hclust(dist(USArrests), "ave")  # regroupement hiérarchique
+
+# Diagramme
+ggdendrogram(hc, rotate = TRUE, size = 2)
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="16"></a> 6.19 Diagrammes de densité
+
+```{r}
+library(ggplot2)
+theme_set(theme_classic())
+
+# Diagramme
+g <- ggplot(mpg, aes(cty))
+g + geom_density(aes(fill=factor(cyl)), alpha=0.8) + 
+    labs(title="Diagramme de densité", 
+         subtitle="Mileage urbain par nombre de cylindres",
+         caption="Source: mpg",
+         x="Mileage urbain ",
+         fill="# cylindres")
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="17"></a> 6.20 Boîtes à moustaches
+
+```{r}
+library(ggplot2)
+theme_set(theme_classic())
+
+# Diagramme
+g <- ggplot(mpg, aes(class, cty))
+g + geom_boxplot(varwidth=T, fill="plum") + 
+    labs(title="Boîtes à moustaches", 
+         subtitle="Mileage urbain par type de véhicule",
+         caption="Source: mpg",
+         x="Type de véhicule",
+         y="Mileage urbain")
+
+```
+
+[Retour en haut de page](#top)
+
+### <a name="18"></a> 6.21 "Dotplots"
+
+```{r}
+library(ggplot2)
+theme_set(theme_bw())
+
+# Diagramme
+g <- ggplot(mpg, aes(manufacturer, cty))
+g + geom_boxplot() + 
+  geom_dotplot(binaxis='y', 
+               stackdir='center', 
+               dotsize = .5, 
+               fill="red") +
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="Diagramme 'Dotplot'", 
+       subtitle="Mileage urbain par type de véhicule: chaque point représente 1 observation",
+       caption="Source: mpg",
+       x="Type de véhicule",
+       y="Mileage urbain")
+```
+
+[Retour en haut de page](#top)
+
+### <a name="19"></a> 6.22 Diagrammes de gaufres
+
+```{r}
+library(ggplot2)
+var <- mpg$class  # données catégoriques
+
+## Préparation des données (rien à changer ici)
+nrows <- 10
+df <- expand.grid(y = 1:nrows, x = 1:nrows)
+categ_table <- round(table(var) * ((nrows*nrows)/(length(var))))
+categ_table
+
+df$category <- factor(rep(names(categ_table), categ_table))  
+# NOTE: si sum(categ_table) n'est pas égal à 100 (c'est-à-dire nrows^2), il faudra procéder à un ajustement pour que la somme soit égale à 100.
+
+## Diagramme
+ggplot(df, aes(x = x, y = y, fill = category)) + 
+        geom_tile(color = "black", size = 0.5) +
+        scale_x_continuous(expand = c(0, 0)) +
+        scale_y_continuous(expand = c(0, 0), trans = 'reverse') +
+        scale_fill_brewer(palette = "Set3") +
+        labs(title="Diagramme à gaufres", subtitle="'Type' de véhicule",
+             caption="Source: mpg") + 
+        theme(panel.border = element_rect(size = 2),
+              plot.title = element_text(size = rel(1.2)),
+              axis.text = element_blank(),
+              axis.title = element_blank(),
+              axis.ticks = element_blank(),
+              legend.title = element_blank(),
+              legend.position = "right")
+
+```
